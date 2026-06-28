@@ -71,6 +71,14 @@
     - debug:
         var: vm
 
+    - name: Wait for EC2 instance to be running
+      amazon.aws.ec2_instance:
+        instance_ids: "{{ vm.instance_ids }}"
+        region: "{{ region }}"
+        state: running
+        wait: yes
+        wait_timeout: 300
+
     - name: Allocate and associate Elastic IP
       amazon.aws.ec2_eip:
         region: "{{ region }}"
