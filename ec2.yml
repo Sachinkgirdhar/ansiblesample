@@ -72,12 +72,13 @@
         var: vm
 
     - name: Wait for EC2 instance to be running
-      amazon.aws.ec2_instance:
+      amazon.aws.ec2_instance_info:
         instance_ids: "{{ vm.instance_ids }}"
         region: "{{ region }}"
-        state: running
-        wait: yes
-        wait_timeout: 300
+      register: ec2_info
+      until: ec2_info.instances[0].state.name == 'running'
+      retries: 30
+      delay: 10
 
     - name: Allocate and associate Elastic IP
       amazon.aws.ec2_eip:
