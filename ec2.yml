@@ -83,6 +83,13 @@
           deploymentID: "{{ deploymentID }}"
       register: sg
 
+    - name: Attach security group to ENI
+      amazon.aws.ec2_eni:
+        eni_id: "{{ eni.interface.id }}"
+        region: "{{ region }}"
+        security_groups:
+          - "{{ sg.group_id }}"
+
     - name: Create EC2 instance
       amazon.aws.ec2_instance:
         name: "{{ instance_name }}"
@@ -92,8 +99,6 @@
         region: "{{ region }}"
         key_name: "{{ key }}"
         vpc_subnet_id: "{{ subnet.subnet.id }}"
-        security_groups:
-          - "{{ sg.group_id }}"
         network:
           assign_public_ip: yes
           interfaces:
