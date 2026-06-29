@@ -49,6 +49,40 @@
           deploymentID: "{{ deploymentID }}"
       register: igw
 
+    - name: Create route table with IGW route
+      amazon.aws.ec2_vpc_route_table:
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ region }}"
+        tags:
+          Name: "{{ vpc_name }}-rt"
+          deploymentID: "{{ deploymentID }}"
+        subnets:
+          - "{{ subnet.subnet.id }}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ igw.gateway_id }}"
+      register: route_table
+
+    - name: Create security group allowing ICMP and SSH
+      amazon.aws.ec2_security_group:
+        name: "{{ vpc_name }}-sg"
+        description: "Allow ICMP ping and SSH for MID server connectivity"
+        vpc_id: "{{ vpc.vpc.id }}"
+        region: "{{ region }}"
+        rules:
+          - proto: icmp
+            from_port: -1
+            to_port: -1
+            cidr_ip: 10.196.103.199/32
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 10.196.103.199/32
+        tags:
+          Name: "{{ vpc_name }}-sg"
+          deploymentID: "{{ deploymentID }}"
+      register: sg
+
     - name: Create EC2 instance
       amazon.aws.ec2_instance:
         name: "{{ instance_name }}"
@@ -58,6 +92,8 @@
         region: "{{ region }}"
         key_name: "{{ key }}"
         vpc_subnet_id: "{{ subnet.subnet.id }}"
+        security_groups:
+          - "{{ sg.group_id }}"
         network:
           assign_public_ip: yes
           interfaces:
