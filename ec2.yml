@@ -77,7 +77,7 @@
           - proto: tcp
             from_port: 22
             to_port: 22
-            cidr_ip: 10.196.103.199/32
+            cidr_ip: 0.0.0.0/0
         tags:
           Name: "{{ vpc_name }}-sg"
           deploymentID: "{{ deploymentID }}"
