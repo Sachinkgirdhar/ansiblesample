@@ -49,19 +49,40 @@
           deploymentID: "{{ deploymentID }}"
       register: igw
 
-    - name: Create route table with IGW route
-      amazon.aws.ec2_vpc_route_table:
-        vpc_id: "{{ vpc.vpc.id }}"
-        region: "{{ region }}"
-        tags:
-          Name: "{{ vpc_name }}-rt"
-          deploymentID: "{{ deploymentID }}"
-        subnets:
-          - "{{ subnet.subnet.id }}"
-        routes:
-          - dest: 0.0.0.0/0
-            gateway_id: "{{ igw.gateway_id }}"
-      register: route_table
+    - name: Create route table
+      ansible.builtin.command:
+        cmd: >
+          aws ec2 create-route-table
+          --vpc-id {{ vpc.vpc.id }}
+          --region {{ region }}
+          --query 'RouteTable.RouteTableId'
+          --output text
+      register: rt
+
+    - name: Associate route table with subnet
+      ansible.builtin.command:
+        cmd: >
+          aws ec2 associate-route-table
+          --route-table-id {{ rt.stdout | trim }}
+          --subnet-id {{ subnet.subnet.id }}
+          --region {{ region }}
+
+    - name: Add IGW route to route table
+      ansible.builtin.command:
+        cmd: >
+          aws ec2 create-route
+          --route-table-id {{ rt.stdout | trim }}
+          --destination-cidr-block 0.0.0.0/0
+          --gateway-id {{ igw.gateway_id }}
+          --region {{ region }}
+
+    - name: Tag route table
+      ansible.builtin.command:
+        cmd: >
+          aws ec2 create-tags
+          --resources {{ rt.stdout | trim }}
+          --tags Key=Name,Value={{ vpc_name }}-rt Key=deploymentID,Value={{ deploymentID }}
+          --region {{ region }}
 
     - name: Create security group allowing ICMP and SSH
       amazon.aws.ec2_security_group:
